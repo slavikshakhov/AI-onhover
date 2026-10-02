@@ -1,6 +1,5 @@
 import { withTimeout } from "./operation";
 import { DwellAction } from "./DwellAction";
-import { clearFittedCodeCache } from "./FittedCode";
 import { AnswerPanel } from "./AnswerPanel";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -260,7 +259,7 @@ function App() {
           return;
         setScreenshotPending(false);
         if (result.answer) {
-          setScreenshotResult({ answer: result.answer, fitId: result.fitId });
+          setScreenshotResult({ answer: result.answer });
 
           if (screenshotActiveRef.current && !recording.current)
             state(
@@ -484,7 +483,6 @@ function App() {
     state("Ready", "Screenshot removed.");
   };
   const reset = (remote = true) => {
-    clearFittedCodeCache();
     discard();
     epoch.current++;
     request.current = "";
@@ -616,7 +614,7 @@ function App() {
       </div>
       <div className="session-summary">
         <span title={sessionContext}>
-          Session: {sessionContext || "No defaults"}
+          Session: {sessionContext || "Front end: React"}
         </span>
         <DwellAction
           disabled={contextOpen || contextSaving || captureBusy}
@@ -658,8 +656,9 @@ function App() {
                 placeholder="Front end: Angular and TypeScript; back end: Java and Spring Boot."
               />
               <p>
-                Optional defaults. Apply or skip, or hover Explain/Capture to
-                begin. Explicit questions and screenshots take precedence.
+                Front end defaults to React; override here. Apply/Skip or hover
+                Explain/Capture. Explicit questions and screenshots take
+                precedence.
               </p>
               <div className="session-actions">
                 <DwellAction

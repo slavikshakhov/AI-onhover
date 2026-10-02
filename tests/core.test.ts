@@ -191,7 +191,7 @@ describe("answer sizing", () => {
       }),
     ).toBe(true);
   });
-  it("rejects malformed answers and overlong code rather than truncating", () => {
+  it("rejects malformed answers and accepts code beyond eight lines", () => {
     expect(
       answerSchema.safeParse({ ...answer, incomplete: "yes" }).success,
     ).toBe(false);
@@ -200,6 +200,6 @@ describe("answer sizing", () => {
         { ...answer, code: Array(10).fill("line").join("\n") },
         "code",
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 });

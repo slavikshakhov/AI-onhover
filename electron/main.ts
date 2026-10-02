@@ -170,20 +170,6 @@ app.whenReady().then(() => {
       budgetSchema.parse(budget),
     );
   });
-  handle("answer:compact", (scope, id, value) => {
-    const target =
-      z.enum(["concept", "screenshot"]).parse(scope) === "concept"
-        ? topic
-        : screenshotTopic;
-    const size = z
-      .object({
-        width: z.number().finite().positive().max(10000),
-        height: z.number().finite().positive().max(10000),
-      })
-      .strict()
-      .parse(value);
-    return target.compact(z.string().max(200).parse(id), size);
-  });
   handle("session:set", (value) => {
     const context = z.string().max(2000).parse(value).trim();
     clearAll();

@@ -154,45 +154,21 @@ try {
     (await app.evaluate(() => globalThis.syntheticCodeRequest)).path,
     [0, 0],
   );
-  assert.match(await page.locator(".fit-message").innerText(), /Enlarge/);
-  await app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows()[0].setSize(900, 950),
-  );
-  await page.waitForTimeout(500);
-  const firstPage = await page.locator(".display-source code").textContent();
   assert.equal(
-    await page.locator(".code-page-navigation span").innerText(),
-    "1 of 2",
-  );
-  await page.getByRole("button", { name: "Next", exact: true }).hover();
-  await page.waitForTimeout(650);
-  assert.equal(
-    firstPage +
-      "\n" +
-      (await page.locator(".display-source code").textContent()),
+    await page.locator(".display-source code").textContent(),
     templateCode,
   );
-  await page.waitForTimeout(650);
-  assert.equal(
-    await page.locator(".code-page-navigation span").innerText(),
-    "2 of 2",
-  );
+  assert.equal(await page.locator(".code-page-navigation").count(), 0);
   assert.equal(await page.locator(".code-panel code li").count(), 0);
-  assert.equal(await page.locator(".solution-limit").count(), 0);
   assert.equal(
-    await page.locator(".solution-viewport").evaluate((el) => {
-      const source = el.querySelector(".display-source");
-      return (
-        source.getBoundingClientRect().height <= el.clientHeight + 1 &&
-        source.scrollWidth <= el.clientWidth + 1 &&
-        parseFloat(getComputedStyle(source).fontSize) >= 13
-      );
-    }),
+    await page
+      .locator(".solution-viewport")
+      .evaluate(
+        (el) =>
+          el.scrollHeight > el.clientHeight &&
+          getComputedStyle(el).overflowY === "scroll",
+      ),
     true,
-  );
-  assert.equal(
-    await page.getByRole("button", { name: /Next|Back/ }).count(),
-    1,
   );
   assert.equal(await page.evaluate(() => window.micCalls), beforeCode);
   await page.getByRole("button", { name: "New topic Hover 1 sec" }).hover();

@@ -138,42 +138,12 @@ try {
     "  return path;",
     "}",
   ].join("\n");
-  const concise = [
-    "function shortestPath(graph, start, end) {",
-    "  const queue = [[start]], seen = new Set([start]);",
-    "  for (let i = 0; i < queue.length; i++) {",
-    "    const path = queue[i], node = path.at(-1);",
-    "    if (node === end) return path;",
-    "    for (const next of graph[node] || [])",
-    "      if (!seen.has(next)) { seen.add(next); queue.push([...path, next]); }",
-    "  }",
-    "  return null;",
-    "}",
-  ].join("\n");
-  await app.evaluate(({ ipcMain }, code) => {
-    globalThis.compactShots = [];
-    ipcMain.removeHandler("answer:compact");
-    ipcMain.handle("answer:compact", (_e, scope, id) => {
-      globalThis.compactShots.push({ scope, id });
-      return {
-        answer: {
-          title: "",
-          code,
-          language: "",
-          incomplete: false,
-          fragments: [],
-          intent: "implement",
-        },
-      };
-    });
-  }, concise);
   for (const source of [short, longer]) {
     await app.evaluate(({ BrowserWindow, ipcMain }, code) => {
       BrowserWindow.getAllWindows()[0].setSize(420, 600);
       ipcMain.removeHandler("screenshot:ask");
       ipcMain.handle("screenshot:ask", (_event, _shotId, request) => ({
         id: request.id,
-        fitId: "solution-" + code.length,
         answer: {
           intent: "implement",
           title: "Unwanted heading",
@@ -192,48 +162,11 @@ try {
     await page.waitForTimeout(900);
     await page.locator("footer").hover();
     await page.waitForTimeout(700);
-    if (source === longer) {
-      const first = await page.locator(".display-source code").textContent();
-      assert.equal(
-        await page.locator(".code-page-navigation span").innerText(),
-        "1 of 2",
-      );
-      await page.getByRole("button", { name: "Next", exact: true }).hover();
-      await page.waitForTimeout(650);
-      assert.equal(
-        first +
-          "\n" +
-          (await page.locator(".display-source code").textContent()),
-        concise,
-      );
-      assert.equal(
-        await page.locator(".code-page-navigation span").innerText(),
-        "2 of 2",
-      );
-      await page.locator("footer").hover();
-      assert.deepEqual(
-        (await app.evaluate(() => globalThis.compactShots)).map((x) => x.scope),
-        ["screenshot"],
-      );
-      await app.evaluate(({ BrowserWindow }) =>
-        BrowserWindow.getAllWindows()[0].setSize(900, 950),
-      );
-    }
     await page.waitForFunction(
       (source) =>
         document.querySelector(".solution-text code")?.textContent === source,
       source,
     );
-    await page.waitForFunction(() => {
-      const el = document.querySelector(".solution-viewport");
-      const code = document.querySelector(".display-source");
-      if (!el || !code) return false;
-      const view = el.getBoundingClientRect(),
-        text = code.getBoundingClientRect();
-      return (
-        text.bottom <= view.bottom + 1 && code.scrollWidth <= el.clientWidth + 1
-      );
-    });
     assert.equal(await page.locator(".display-source").innerText(), source);
     assert.equal(
       await page
@@ -251,20 +184,21 @@ try {
         getComputedStyle(el.querySelector(".display-source")).fontSize,
       ),
     }));
-    assert.equal(layout.fits, true);
-    assert.ok(!["auto", "scroll"].includes(layout.overflow));
+    assert.equal(await page.locator(".code-page-navigation").count(), 0);
+    assert.equal(
+      await page
+        .locator(".solution-viewport")
+        .evaluate((el) => getComputedStyle(el).overflowY),
+      "scroll",
+    );
     assert.ok(layout.font >= 13);
     const bounds = await app.evaluate(({ BrowserWindow }) => ({
       bounds: BrowserWindow.getAllWindows()[0].getBounds(),
     }));
-    assert.equal(bounds.bounds.width, source === short ? 420 : 900);
-    assert.equal(bounds.bounds.height, source === short ? 600 : 950);
-    assert.equal(
-      (await app.evaluate(() => globalThis.compactShots)).length,
-      source === short ? 0 : 1,
-    );
+    assert.equal(bounds.bounds.width, 420);
+    assert.equal(bounds.bounds.height, 600);
     console.log(
-      `Complete solution UI passed: ${source === short ? "short" : "longer"}, all source visible at ${layout.font}px, ${bounds.bounds.width}×${bounds.bounds.height}, no headings, pages, scrolling or clipping.`,
+      `Complete solution UI passed: ${source === short ? "short" : "longer"}, all source visible at ${layout.font}px, ${bounds.bounds.width}×${bounds.bounds.height}, continuous source with scrolling, no headings or pages.`,
     );
   }
 } finally {

@@ -76,7 +76,7 @@ try {
   await hover("Clear context");
   assert.match(
     await page.locator(".session-summary").innerText(),
-    /No defaults/,
+    /Front end: React/,
   );
   await page.reload();
   assert.equal(await page.locator("#session-context").inputValue(), "");

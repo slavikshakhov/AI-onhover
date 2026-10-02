@@ -25,13 +25,11 @@ const response = (value: unknown) =>
       ],
     }),
   );
-function harness() {
+function harness(transcript = "Subject versus BehaviorSubject") {
   const calls: any[] = [];
   const transport = vi.fn(async (url: unknown, init: any) => {
     if (String(url).endsWith("transcriptions"))
-      return new Response(
-        JSON.stringify({ text: "Subject versus BehaviorSubject" }),
-      );
+      return new Response(JSON.stringify({ text: transcript }));
     const body = JSON.parse(init.body);
     calls.push(body);
     return response(
@@ -50,6 +48,9 @@ function harness() {
     topic: new Topic(false, "fake", undefined, undefined, transport),
     transport,
     calls,
+    setTranscript: (value: string) => {
+      transcript = value;
+    },
   };
 }
 it("threads context and explicit-question precedence through answers, nested details and practical markup; reset preserves defaults", async () => {
@@ -122,3 +123,45 @@ it("accepts useful native void-element markup and practical non-code examples", 
     }).fragments,
   ).toHaveLength(2);
 });
+
+it.each([
+  "How do I manage component state?",
+  "Explain database transaction isolation",
+  "How does Python garbage collection work?",
+  "Implement a REST endpoint in Java",
+  "Show component state in Vue",
+  "Explain CSS stacking contexts",
+])(
+  "passes the contextual default and full question without keyword routing: %s",
+  async (question) => {
+    const { topic, calls, setTranscript } = harness(question);
+    const initial = await topic.ask(request());
+    await topic.details(initial.version!, [0]);
+    await topic.code(initial.version!, [0, 0], budget);
+    for (const call of calls) {
+      expect(call.instructions).toContain("default to React");
+      expect(call.instructions).toContain(
+        "Do not introduce React into databases",
+      );
+      expect(call.instructions).toContain(
+        "Answer framework-independent front-end concepts directly",
+      );
+      expect(call.instructions).toContain("established topic context");
+      expect(call.instructions).toContain("analyze existing code as written");
+      expect(call.instructions).toContain(
+        "editable session context overrides React",
+      );
+    }
+    expect(calls[0].input.at(-1).content).toBe(question);
+    setTranscript("Show a practical example of that");
+    await topic.ask(request());
+    expect(calls.at(-1).input.at(-1).content).toBe(
+      "Show a practical example of that",
+    );
+    expect(calls.at(-1).input[0]).toEqual({ role: "user", content: question });
+    topic.reset();
+    await topic.ask(request());
+    expect(calls.at(-1).instructions).toContain("default to React");
+    expect(calls.at(-1).input).toHaveLength(1);
+  },
+);

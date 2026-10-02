@@ -2,17 +2,18 @@ import { it, expect, vi } from "vitest";
 import { answerContract } from "../electron/answer-contract";
 import { Topic } from "../electron/service";
 const budget = { lines: 8, columns: 40, fragments: 4 };
-it("enforces Explain without code and Code with at most two fragments and eight lines", () => {
+it("enforces Explain without code and Code with at most two fragments without viewport code limits", () => {
   const explain = answerContract("explain", budget, false);
   expect(explain.schema.properties.code.enum).toEqual([""]);
   expect(explain.schema.properties.language.enum).toEqual([""]);
   expect(explain.instructions).not.toContain("minimal code example");
   const code = answerContract("code", budget, false);
   expect(code.schema.properties.fragments.maxItems).toBe(2);
-  const pattern = new RegExp(code.schema.properties.code.pattern!);
-  expect(pattern.test(Array(8).fill("x").join("\n"))).toBe(true);
-  expect(pattern.test(Array(9).fill("x").join("\n"))).toBe(false);
-  expect(pattern.test("x".repeat(41))).toBe(false);
+  expect(code.schema.properties.code).toEqual({
+    type: "string",
+    maxLength: 32000,
+  });
+  expect(code.instructions).toContain("no viewport line or column limit");
 });
 it("repairs a format violation once and prevents a second shortening call", async () => {
   let calls = 0;
@@ -33,7 +34,11 @@ it("repairs a format violation once and prevents a second shortening call", asyn
                   fragments: [],
                   language: "JavaScript",
                   incomplete: false,
-                  code: calls === 1 ? Array(9).fill("x();").join("\n") : "x();",
+                  code: "x();",
+                  // A genuine mode-format violation, unrelated to source length.
+                  ...(calls === 1
+                    ? { fragments: ["one", "two", "three"] }
+                    : {}),
                 }),
               },
             ],

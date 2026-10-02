@@ -374,7 +374,14 @@ export function CodePanel({
 }) {
   const body = useRef<HTMLDivElement>(null);
   const fullContent = useRef<HTMLDivElement>(null);
-  const overflow = useFitContent(body, fullContent, result);
+  const measuredOverflow = useFitContent(body, fullContent, result);
+  const overflow = measuredOverflow && !result.answer?.code;
+  useLayoutEffect(() => {
+    if (body.current) {
+      body.current.scrollTop = 0;
+      body.current.scrollLeft = 0;
+    }
+  }, [result.answer]);
   if (!screenshot && result.answer?.incomplete) {
     return (
       <div className="code-panel">
@@ -411,7 +418,7 @@ export function CodePanel({
       <HoverAction onActivate={onReturn}>← {returnLabel}</HoverAction>
       <div
         ref={body}
-        className={`code-content ${screenshot ? "screenshot-content" : ""}`}
+        className={`code-content ${screenshot ? "screenshot-content" : ""} ${result.answer?.code ? "scrollable-code" : ""}`}
       >
         <div
           ref={fullContent}

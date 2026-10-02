@@ -165,12 +165,8 @@ it("ignores a replaced screenshot response even when its transport ignores abort
   expect(topic.history[0].answer).toEqual(output);
 });
 
-it("compacts a screenshot solution once with the current image and complete behavior preserved in the contract", async () => {
-  const calls: any[] = [];
-  const transport = vi.fn(async (_url: unknown, init: any) => {
-    calls.push(JSON.parse(init.body));
-    return response(implementation);
-  });
+it("reuses a complete screenshot solution without viewport-dependent requests", async () => {
+  const transport = vi.fn(async () => response(implementation));
   const topic = new Topic(
     false,
     "fake",
@@ -180,19 +176,8 @@ it("compacts a screenshot solution once with the current image and complete beha
   );
   topic.setImage("data:image/png;base64,CHALLENGE");
   const full = await topic.analyzeScreenshot(budget);
-  await topic.compact(full.fitId!, { width: 350, height: 200 });
-  await topic.compact(full.fitId!, { width: 600, height: 500 });
-  expect(calls).toHaveLength(2);
-  expect(calls[1].instructions).toContain(
-    "Preserve ALL required challenge behavior",
-  );
-  expect(calls[1].input.at(-1).content[1].image_url).toBe(
-    "data:image/png;base64,CHALLENGE",
-  );
-  expect(topic.history).toHaveLength(1);
+  transport.mockClear();
   expect(await topic.analyzeScreenshot(budget)).toEqual(full);
-  topic.setImage("data:image/png;base64,NEXT");
-  expect(
-    (await topic.compact(full.fitId!, { width: 350, height: 200 })).error,
-  ).toBeTruthy();
+  expect(transport).not.toHaveBeenCalled();
+  expect(full.answer?.code).toBe(implementation.code);
 });

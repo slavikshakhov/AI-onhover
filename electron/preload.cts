@@ -16,8 +16,6 @@ contextBridge.exposeInMainWorld("assistant", {
     ipcRenderer.invoke("screenshot:ask", id, r),
   shortenScreenshot: (shotId: string, id: string, budget: unknown) =>
     ipcRenderer.invoke("screenshot:shorten", shotId, id, budget),
-  compact: (scope: string, id: string, size: unknown) =>
-    ipcRenderer.invoke("answer:compact", scope, id, size),
   config: () => ipcRenderer.invoke("config"),
   ask: (r: unknown) => ipcRenderer.invoke("ask", r),
   shorten: (id: string, budget: unknown) =>

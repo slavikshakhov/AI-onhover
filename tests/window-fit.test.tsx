@@ -7,7 +7,7 @@ it.each([
   "function f() { return 1; }",
   `function f() {\n${"  doRequiredWork();\n".repeat(30)}  return result;\n}`,
 ])(
-  "retains complete source for measurement without headings, notes or omissions",
+  "renders complete source continuously without headings, notes or omissions",
   (code) => {
     const answer = {
       intent: "implement" as const,
@@ -37,7 +37,8 @@ it.each([
     );
     expect(html).not.toMatch(/<h1|<nav|Unwanted|ellipsis/);
     expect(html).toContain('class="panel-controls"');
-    expect(html).toContain('class="code-measure"');
+    expect(html).toContain('class="solution-viewport"');
+    expect(html).not.toMatch(/code-page-navigation|code-measure|Enlarge|compact/);
     expect(html).toContain(code);
   },
 );

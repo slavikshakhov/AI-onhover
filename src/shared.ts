@@ -19,7 +19,7 @@ export const answerSchema = z
   .object({
     title: z.string().min(1).max(80),
     fragments: z.array(z.string().max(120)).max(4),
-    code: z.string().max(1600),
+    code: z.string().max(32000),
     language: z.string().max(24),
     incomplete: z.boolean(),
     outputs: z.array(outputSchema).optional(),
@@ -137,7 +137,6 @@ export const requestSchema = z
 export type Request = z.infer<typeof requestSchema>;
 export type DetailResult = { children?: string[]; error?: string };
 export type Result = {
-  fitId?: string;
   version?: string;
   id: string;
   answer?: Answer;
@@ -145,8 +144,7 @@ export type Result = {
   empty?: boolean;
   shortened?: boolean;
 };
-export type CodeResult = { answer?: Answer; error?: string; fitId?: string };
-export type FitSize = { width: number; height: number };
+export type CodeResult = { answer?: Answer; error?: string };
 export type Selection = { path: number[]; label: string };
 export type ScreenshotAttachment = { id: string; thumbnail: string };
 export type CaptureResponse = {
@@ -172,11 +170,6 @@ export interface Bridge {
 
   code(version: string, path: number[], budget: Budget): Promise<CodeResult>;
   details(version: string, path: number[]): Promise<DetailResult>;
-  compact(
-    scope: "concept" | "screenshot",
-    fitId: string,
-    size: FitSize,
-  ): Promise<CodeResult>;
   config(): Promise<{ demo: boolean }>;
   ask(r: Request): Promise<Result>;
   shorten(id: string, budget: Budget): Promise<Result>;
@@ -203,7 +196,5 @@ export function overflows(
   );
 }
 export function validModeAnswer(a: Answer, mode: Mode) {
-  return mode === "explain"
-    ? a.code === ""
-    : a.fragments.length <= 2 && a.code.split("\n").length <= 8;
+  return mode === "explain" ? a.code === "" : a.fragments.length <= 2;
 }

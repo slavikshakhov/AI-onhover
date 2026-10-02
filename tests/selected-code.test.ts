@@ -220,52 +220,14 @@ it.each([
   },
 );
 
-it("retains full code and makes at most one compact request per example across sizes", async () => {
-  const { topic, calls, transport } = harness();
+it("reuses complete selected code without viewport-dependent provider requests", async () => {
+  const { topic, transport } = harness();
   const initial = await topic.ask({ ...req });
   await topic.details(initial.version!, [0]);
   const full = await topic.code(initial.version!, [0, 0], budget);
   transport.mockClear();
-  const [a, b] = await Promise.all([
-    topic.compact(full.fitId!, { width: 350, height: 180 }),
-    topic.compact(full.fitId!, { width: 300, height: 100 }),
-  ]);
-  expect(a).toEqual(b);
-  expect(transport).toHaveBeenCalledOnce();
-  const request = calls.at(-1);
-  expect(request.instructions).toContain("ONLY compaction attempt");
-  expect(request.instructions).toContain("Omit unrelated features");
-  const input = JSON.parse(request.input.at(-1).content);
-  expect(JSON.parse(input.context)).toMatchObject({
-    selectedPath: [0, 0],
-    selectedBullet: "Stable item order",
-    ancestors: ["Ordered collections"],
-    originalQuestion: "Explain arrays in TypeScript",
-  });
   expect(await topic.code(initial.version!, [0, 0], budget)).toEqual(full);
-  expect(transport).toHaveBeenCalledOnce();
-});
-
-it("caches compact failures and ignores compact work after reset", async () => {
-  const { topic, transport } = harness();
-  const initial = await topic.ask({ ...req });
-  const full = await topic.code(initial.version!, [0], budget);
-  transport.mockRejectedValueOnce(new Error("Network failure"));
-  const failed = await topic.compact(full.fitId!, { width: 300, height: 100 });
-  expect(failed.error).toBeTruthy();
-  transport.mockClear();
-  expect(await topic.compact(full.fitId!, { width: 500, height: 300 })).toEqual(
-    failed,
-  );
   expect(transport).not.toHaveBeenCalled();
-  const root = await topic.code(initial.version!, [], budget);
-  let resolve!: (r: Response) => void;
-  transport.mockImplementationOnce(() => new Promise((r) => (resolve = r)));
-  const pending = topic.compact(root.fitId!, { width: 300, height: 100 });
   topic.reset();
-  resolve(new Response(JSON.stringify({ status: "incomplete" })));
-  expect(await pending).toEqual({});
-  expect(
-    (await topic.compact(root.fitId!, { width: 300, height: 100 })).error,
-  ).toBeTruthy();
+  expect(await topic.code(initial.version!, [0, 0], budget)).toEqual({});
 });

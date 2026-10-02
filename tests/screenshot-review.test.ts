@@ -106,7 +106,7 @@ it.each([
 ])("rejects truncated or invalid structured output", (data) => {
   expect(() => parseStructured(data)).toThrow();
 });
-it("uses the identical full screenshot in extraction, generation, review and one bounded compaction; keeps replacement isolated", async () => {
+it("uses the identical full screenshot in extraction, generation, review; keeps replacement isolated", async () => {
   const calls: any[] = [];
   const transport = vi.fn(async (_url: unknown, init: any) => {
     const body = JSON.parse(init.body);
@@ -136,15 +136,13 @@ it("uses the identical full screenshot in extraction, generation, review and one
     fragments: 4,
   });
   expect(full.error).toBeUndefined();
-  await topic.compact(full.fitId!, { width: 300, height: 150 });
   expect(calls.map((x) => x.text.format.name)).toEqual([
     "screenshot_requirements",
     "compact_answer",
     "screenshot_review",
-    "compact_answer",
   ]);
   expect(
-    JSON.parse(calls.at(-1).input.at(-1).content[0].text).requirements,
+    JSON.parse(calls[1].input.at(-1).content[0].text).requirements,
   ).toEqual(req);
   for (const call of calls) {
     expect(call.instructions).toContain("Angular and TypeScript");
