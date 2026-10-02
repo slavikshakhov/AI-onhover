@@ -35,7 +35,7 @@ export function answerContract(mode: Mode, budget: Budget, short: boolean) {
   };
   const modeInstructions =
     mode === "explain"
-      ? `Return a short topic title and at most ${fragments} keyword fragments, ideally no more than six words each. No introductions, conclusions, or long prose. The code and language fields MUST be empty strings, even if earlier exchanges contain code. Explain the concept using fragments only.`
+      ? `Return a short topic title and at most ${fragments} concise bullets, usually six to ten words each. Match the current question’s intent: definitions may define; usage and implementation questions need practical steps, APIs or mechanisms in the applicable technology. Do not summarize away framework-specific guidance. No introductions, conclusions, or long prose. The code and language fields MUST be empty strings, even if earlier exchanges contain code. Answer the requested task using fragments only.`
       : `Return a short topic title and a focused complete code example in one continuous scrollable view, with no viewport line or column limit. At most ${fragments} short explanatory fragments. No Markdown fences. Use actual newline characters, not literal backslash-n sequences. Prefer a tiny useful example; mark incomplete snippets with incomplete=true. Never cut syntax to meet a limit.`;
   return {
     schema,

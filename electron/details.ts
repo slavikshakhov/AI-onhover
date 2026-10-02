@@ -5,6 +5,7 @@ export type DetailSource = {
   question: string;
   answer: Answer;
   history: unknown;
+  sessionContext?: string;
 };
 const childrenSchema = z
   .object({
@@ -44,9 +45,10 @@ export class Details {
   private cache = new Map<string, Promise<DetailResult>>();
   private controller = new AbortController();
   private version = "";
-  lookup(version: string, path: number[]) {
-    return version === this.version
-      ? this.cache.get(path.join("."))
+  private sessionContext = "";
+  lookup(version: string, path: number[], sessionContext = "") {
+    return version === this.version && sessionContext === this.sessionContext
+      ? this.cache.get(JSON.stringify([sessionContext, path]))
       : undefined;
   }
   clear() {
@@ -54,17 +56,23 @@ export class Details {
     this.controller = new AbortController();
     this.cache.clear();
     this.version = "";
+    this.sessionContext = "";
   }
   get(
     source: DetailSource,
     path: number[],
     generate: (signal: AbortSignal) => Promise<string[]>,
   ): Promise<DetailResult> {
-    if (source.version !== this.version) {
+    const sessionContext = source.sessionContext ?? "";
+    if (
+      source.version !== this.version ||
+      sessionContext !== this.sessionContext
+    ) {
       this.clear();
       this.version = source.version;
+      this.sessionContext = sessionContext;
     }
-    const key = path.join(".");
+    const key = JSON.stringify([sessionContext, path]);
     const cached = this.cache.get(key);
     if (cached) return cached;
     if (this.cache.size >= 128)

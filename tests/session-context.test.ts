@@ -80,7 +80,9 @@ it("threads context and explicit-question precedence through answers, nested det
   expect(calls.at(-1).instructions).not.toContain("Angular / TypeScript");
   topic.setSessionContext("");
   await topic.ask(request());
-  expect(calls.at(-1).instructions).toContain('Session context: ""');
+  expect(calls.at(-1).instructions).toContain(
+    'Session context: "Front end: React"',
+  );
 });
 it("discards old pending answers and examples even when transport ignores abort", async () => {
   const { topic, transport } = harness();
@@ -139,12 +141,14 @@ it.each([
     await topic.details(initial.version!, [0]);
     await topic.code(initial.version!, [0, 0], budget);
     for (const call of calls) {
-      expect(call.instructions).toContain("default to React");
+      expect(call.instructions).toContain(
+        "default to React when none is selected",
+      );
       expect(call.instructions).toContain(
         "Do not introduce React into databases",
       );
       expect(call.instructions).toContain(
-        "Answer framework-independent front-end concepts directly",
+        "only when that answers the actual request",
       );
       expect(call.instructions).toContain("established topic context");
       expect(call.instructions).toContain("analyze existing code as written");
@@ -161,7 +165,89 @@ it.each([
     expect(calls.at(-1).input[0]).toEqual({ role: "user", content: question });
     topic.reset();
     await topic.ask(request());
-    expect(calls.at(-1).instructions).toContain("default to React");
+    expect(calls.at(-1).instructions).toContain(
+      "default to React when none is selected",
+    );
     expect(calls.at(-1).input).toHaveLength(1);
+  },
+);
+
+it.each([
+  ["", "How do we use protected routes?", "Front end: React"],
+  [
+    "Front end: Angular",
+    "How do we implement form validation?",
+    "Front end: Angular",
+  ],
+  ["", "How do we manage shared UI state?", "Front end: React"],
+  [
+    "Front end: React",
+    "What is database transaction isolation?",
+    "Front end: React",
+  ],
+  [
+    "Front end: React",
+    "How do we use protected routes in Vue?",
+    "Front end: React",
+  ],
+])(
+  "preserves intent and effective context in actual Explain, nested and Code requests: %s / %s",
+  async (context, question, effective) => {
+    const { topic, calls } = harness(question);
+    topic.setSessionContext(context);
+    const answer = await topic.ask(request());
+    expect(answer.error).toBeUndefined();
+    const explain = calls[0];
+    expect(explain.input.at(-1).content).toBe(question);
+    expect(explain.instructions).toContain(
+      `Session context: ${JSON.stringify(effective)}`,
+    );
+    expect(explain.instructions).toContain(
+      "usage and implementation questions need practical steps, APIs or mechanisms",
+    );
+    expect(explain.instructions).toContain(
+      "Do not summarize away framework-specific guidance",
+    );
+    expect(explain.instructions).not.toContain("keyword fragments");
+    expect(explain.instructions).not.toContain(
+      "Answer framework-independent front-end concepts directly",
+    );
+    expect(explain.instructions).toContain(
+      "Do not introduce React into databases",
+    );
+    expect(explain.instructions).toContain(
+      "Explicitly requested technologies, established topic context, and visible screenshot requirements take precedence",
+    );
+    await topic.details(answer.version!, [0]);
+    await topic.details(answer.version!, [0, 0]);
+    await topic.code(answer.version!, [0, 0, 0], budget);
+    for (const call of calls.slice(1)) {
+      expect(call.instructions).toContain(
+        `Session context: ${JSON.stringify(effective)}`,
+      );
+      const data = JSON.parse(
+        call.input instanceof Array ? call.input.at(-1).content : call.input,
+      );
+      expect(data.sessionContext).toBe(effective);
+      expect(data.originalQuestion).toBe(question);
+    }
+    expect(calls[1].instructions).toContain(
+      "expand into concrete steps, APIs or mechanisms rather than generic definitions",
+    );
+    const count = calls.length;
+    await topic.details(answer.version!, [0]);
+    await topic.code(answer.version!, [0, 0, 0], budget);
+    expect(calls).toHaveLength(count);
+    topic.setSessionContext("Front end: Svelte");
+    expect(await topic.details(answer.version!, [0])).toEqual({});
+    expect(await topic.code(answer.version!, [0, 0, 0], budget)).toEqual({});
+    const fresh = await topic.ask(request());
+    await topic.details(fresh.version!, [0]);
+    await topic.code(fresh.version!, [0, 0], budget);
+    for (const call of calls.slice(count)) {
+      expect(call.instructions).toContain(
+        'Session context: "Front end: Svelte"',
+      );
+    }
   },
 );

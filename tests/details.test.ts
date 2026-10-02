@@ -147,3 +147,26 @@ it("does not activate a bullet moved away by layout and collapses the previous b
   expect(hover.active).toBeUndefined();
   hover.dispose();
 });
+
+it("partitions detail caches by session context even for the same answer version", async () => {
+  const cache = new Details();
+  const react = { ...source, sessionContext: "Front end: React" };
+  const angular = { ...source, sessionContext: "Front end: Angular" };
+  const generateReact = vi.fn(async () => ["Read authentication state"]);
+  const generateAngular = vi.fn(async () => ["Configure a route guard"]);
+  await cache.get(react, [0], generateReact);
+  expect(
+    (await cache.lookup(source.version, [0], react.sessionContext))?.children,
+  ).toEqual(["Read authentication state"]);
+  expect(
+    cache.lookup(source.version, [0], angular.sessionContext),
+  ).toBeUndefined();
+  expect((await cache.get(angular, [0], generateAngular)).children).toEqual([
+    "Configure a route guard",
+  ]);
+  expect(
+    cache.lookup(source.version, [0], react.sessionContext),
+  ).toBeUndefined();
+  expect(generateAngular).toHaveBeenCalledOnce();
+  cache.clear();
+});
