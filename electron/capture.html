@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src data:; script-src 'self'; style-src 'self' 'unsafe-inline'"
+    />
+    <title>Select screenshot region</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        cursor: crosshair;
+        font: 16px system-ui;
+      }
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #selection {
+        position: absolute;
+        border: 2px solid #98c3ff;
+        box-shadow: 0 0 0 99999px #0007;
+        pointer-events: none;
+        display: none;
+      }
+      #help {
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #142030;
+        color: white;
+        padding: 10px 18px;
+        border-radius: 8px;
+        pointer-events: none;
+      }
+      button {
+        position: fixed;
+        right: 16px;
+        top: 16px;
+        background: #27354b;
+        color: white;
+        border: 1px solid #8396b6;
+        padding: 12px;
+        border-radius: 8px;
+        cursor: default;
+      }
+      button:hover {
+        background: #574056;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="screen"></canvas>
+    <div id="selection"></div>
+    <div id="help">
+      Press, drag a rectangle, release · no audio will be recorded
+    </div>
+    <button id="cancel">Hover to cancel</button>
+    <script src="capture-renderer.js"></script>
+  </body>
+</html>
